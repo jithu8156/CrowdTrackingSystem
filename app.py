@@ -1,47 +1,44 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session
+import os
 
 app = Flask(__name__)
+app.secret_key = "supersecretkey123"  # Needed for session
 
-# Store user current square
+# -------------------------
+# ADMIN CREDENTIALS
+# -------------------------
+ADMIN_USERNAME = "admin"
+ADMIN_PASSWORD = "1234"
+
+# -------------------------
+# USER LOCATION STORAGE
+# -------------------------
 user_locations = {}
 
-# Define grid squares
+# -------------------------
+# GRID SQUARES
+# -------------------------
 SQUARES = {
-    "A1": {
-        "lat_min": 9.9300,
-        "lat_max": 9.9315,
-        "lon_min": 76.2660,
-        "lon_max": 76.2675,
-        "count": 0,
-        "limit": 3
-    },
-    "A2": {
-        "lat_min": 9.9300,
-        "lat_max": 9.9315,
-        "lon_min": 76.2675,
-        "lon_max": 76.2690,
-        "count": 0,
-        "limit": 3
-    },
-    "B1": {
-        "lat_min": 9.9315,
-        "lat_max": 9.9330,
-        "lon_min": 76.2660,
-        "lon_max": 76.2675,
-        "count": 0,
-        "limit": 3
-    },
-    "B2": {
-        "lat_min": 9.9315,
-        "lat_max": 9.9330,
-        "lon_min": 76.2675,
-        "lon_max": 76.2690,
-        "count": 0,
-        "limit": 3
-    }
+    "A1": {"lat_min": 9.9300, "lat_max": 9.9315,
+           "lon_min": 76.2660, "lon_max": 76.2675,
+           "count": 0, "limit": 3},
+
+    "A2": {"lat_min": 9.9300, "lat_max": 9.9315,
+           "lon_min": 76.2675, "lon_max": 76.2690,
+           "count": 0, "limit": 3},
+
+    "B1": {"lat_min": 9.9315, "lat_max": 9.9330,
+           "lon_min": 76.2660, "lon_max": 76.2675,
+           "count": 0, "limit": 3},
+
+    "B2": {"lat_min": 9.9315, "lat_max": 9.9330,
+           "lon_min": 76.2675, "lon_max": 76.2690,
+           "count": 0, "limit": 3}
 }
 
-# Detect square based on location
+# -------------------------
+# Detect square
+# -------------------------
 def get_square(lat, lon):
     for square_id, square in SQUARES.items():
         if (square["lat_min"] <= lat <= square["lat_max"] and
@@ -62,24 +59,17 @@ def update_location():
     lon = data["longitude"]
 
     square = get_square(lat, lon)
-
-    # Identify user using IP address
     user_id = request.remote_addr
-
     previous_square = user_locations.get(user_id)
 
-    # If user is inside event area
     if square:
 
-        # If user moved to new square
         if previous_square and previous_square != square:
             SQUARES[previous_square]["count"] -= 1
 
-        # If first time entering or changed square
         if previous_square != square:
             SQUARES[square]["count"] += 1
 
-        # Update user location
         user_locations[user_id] = square
 
         alert = SQUARES[square]["count"] > SQUARES[square]["limit"]
@@ -87,11 +77,9 @@ def update_location():
         return jsonify({
             "square": square,
             "count": SQUARES[square]["count"],
-            "limit": SQUARES[square]["limit"],
             "alert": alert
         })
 
-    # If user left event area
     else:
         if previous_square:
             SQUARES[previous_square]["count"] -= 1
@@ -100,10 +88,44 @@ def update_location():
         return jsonify({"message": "Outside event area"})
 
 
+# -------------------------
+# ADMIN LOGIN ROUTE
+# -------------------------
+@app.route('/admin', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+            session['admin'] = True
+            return redirect(url_for('dashboard'))
+        else:
+            return render_template('admin_login.html', error="Invalid Credentials")
+
+    return render_template('admin_login.html')
+
+
+# -------------------------
+# PROTECTED DASHBOARD
+# -------------------------
 @app.route('/dashboard')
 def dashboard():
+    if not session.get('admin'):
+        return redirect(url_for('admin_login'))
+
     return render_template("dashboard.html", squares=SQUARES)
 
 
+# -------------------------
+# LOGOUT
+# -------------------------
+@app.route('/logout')
+def logout():
+    session.pop('admin', None)
+    return redirect(url_for('admin_login'))
+
+
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
