@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Event Entry</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <h2>🎟 Event Check-In</h2>
+        <p>Please allow location access to enter the event.</p>
+
+        <button onclick="startTracking()">Enter Event</button>
+
+        <div id="status" style="margin-top:20px;"></div>
+    </div>
+</div>
+
+<script>
+
+let watchId = null;
+
+function startTracking() {
+
+    document.getElementById("status").innerHTML = "Tracking location...";
+
+    watchId = navigator.geolocation.watchPosition(
+
+        function(position) {
+
+            fetch('/update_location', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+
+                if (data.square) {
+
+                    document.getElementById("status").innerHTML =
+                        "<strong>Square:</strong> " + data.square +
+                        "<br><strong>Count:</strong> " + data.count +
+                        (data.alert
+                            ? "<br><span style='color:red;'>⚠ OVERCROWDED</span>"
+                            : "<br><span style='color:green;'>Safe</span>");
+
+                } else {
+                    document.getElementById("status").innerHTML =
+                        "<span style='color:orange;'>Outside Event Area</span>";
+                }
+
+            })
+            .catch(error => {
+                document.getElementById("status").innerHTML =
+                    "<span style='color:red;'>Server Error</span>";
+            });
+
+        },
+
+        function(error) {
+            document.getElementById("status").innerHTML =
+                "<span style='color:red;'>Location permission denied.</span>";
+        },
+
+        {
+            enableHighAccuracy: true,
+            maximumAge: 0,
+            timeout: 5000
+        }
+    );
+}
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <meta http-equiv="refresh" content="3">
+
+    <style>
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            padding: 20px;
+            max-width: 800px;
+            margin: auto;
+        }
+
+        .square-card {
+            padding: 20px;
+            border-radius: 10px;
+            color: white;
+            font-size: 18px;
+        }
+
+        .safe-square {
+            background-color: #1f8a3d;
+        }
+
+        .danger-square {
+            background-color: #b02a2a;
+        }
+
+        .header {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .total-box {
+            text-align: center;
+            font-size: 20px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="header">
+    <h1>📊 Live Crowd Monitoring Dashboard</h1>
+</div>
+
+<div class="total-box">
+    <strong>Total Crowd:</strong>
+    {{ squares.values() | sum(attribute='count') }}
+</div>
+
+<div class="dashboard-container">
+
+{% for id, square in squares.items() %}
+    <div class="square-card 
+        {% if square.count > square.limit %}
+            danger-square
+        {% else %}
+            safe-square
+        {% endif %}
+    ">
+
+        <h3>Square {{ id }}</h3>
+        <p><strong>Current Count:</strong> {{ square.count }}</p>
+        <p><strong>Limit:</strong> {{ square.limit }}</p>
+
+        {% if square.count > square.limit %}
+            <p>⚠ OVERCROWDED</p>
+        {% else %}
+            <p>Safe</p>
+        {% endif %}
+
+    </div>
+{% endfor %}
+
+</div>
+
+</body>
+</html>
