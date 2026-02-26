@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Define Event Area</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        .top-bar {
+            background: #111;
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            color: white;
+            background-color: #007bff;
+        }
+
+        .nav-btn:hover {
+            background-color: #0056b3;
+        }
+
+        #map {
+            height: 600px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <div>📍 Event Boundary Map</div>
+    <div>
+        <a href="/dashboard">
+            <button class="nav-btn">⬅ Back to Dashboard</button>
+        </a>
+    </div>
+</div>
+
+<div id="map"></div>
+
+<script>
+
+    // Initialize map (center around your event area)
+    var map = L.map('map').setView([9.931, 76.267], 18);
+
+    // Load map tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Define event boundary polygon
+    var eventBoundary = L.polygon([
+        [9.9305, 76.2665],
+        [9.9305, 76.2685],
+        [9.9325, 76.2685],
+        [9.9325, 76.2665]
+    ], {
+        color: 'blue',
+        fillOpacity: 0.2
+    }).addTo(map);
+
+    map.fitBounds(eventBoundary.getBounds());
+
+</script>
+
+</body>
+</html>
