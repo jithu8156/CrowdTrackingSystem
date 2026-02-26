@@ -12,67 +12,101 @@
         <p>Please allow location access to enter the event.</p>
 
         <button onclick="startTracking()">Enter Event</button>
+        <button onclick="stopTracking()" style="margin-left:10px;">Stop</button>
 
         <div id="status" style="margin-top:20px;"></div>
+        <div id="timestamp" style="margin-top:10px; font-size:14px;"></div>
     </div>
 </div>
 
 <script>
 
-let watchId = null;
+let trackingInterval = null;
 
 function startTracking() {
 
-    document.getElementById("status").innerHTML = "Tracking location...";
+    document.getElementById("status").innerHTML = "Initializing GPS...";
+    
+    // Prevent multiple intervals
+    if (trackingInterval !== null) {
+        return;
+    }
 
-    watchId = navigator.geolocation.watchPosition(
+    trackingInterval = setInterval(function() {
 
-        function(position) {
+        navigator.geolocation.getCurrentPosition(
 
-            fetch('/update_location', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude
+            function(position) {
+
+                fetch('/update_location', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        accuracy: position.coords.accuracy
+                    })
                 })
-            })
-            .then(res => res.json())
-            .then(data => {
+                .then(res => res.json())
+                .then(data => {
 
-                if (data.square) {
+                    let now = new Date();
+                    document.getElementById("timestamp").innerHTML =
+                        "Last Updated: " + now.toLocaleTimeString();
 
+                    if (data.square) {
+
+                        document.getElementById("status").innerHTML =
+                            "<strong>Square:</strong> " + data.square +
+                            "<br><strong>Count:</strong> " + data.count +
+                            "<br><strong>GPS Accuracy:</strong> "
+                            + position.coords.accuracy.toFixed(2) + " meters" +
+                            (data.alert
+                                ? "<br><span style='color:red;'>⚠ OVERCROWDED</span>"
+                                : "<br><span style='color:green;'>Safe</span>");
+
+                    } else {
+
+                        document.getElementById("status").innerHTML =
+                            "<span style='color:orange;'>Outside Event Area</span>" +
+                            "<br><strong>GPS Accuracy:</strong> "
+                            + position.coords.accuracy.toFixed(2) + " meters";
+                    }
+
+                })
+                .catch(error => {
                     document.getElementById("status").innerHTML =
-                        "<strong>Square:</strong> " + data.square +
-                        "<br><strong>Count:</strong> " + data.count +
-                        (data.alert
-                            ? "<br><span style='color:red;'>⚠ OVERCROWDED</span>"
-                            : "<br><span style='color:green;'>Safe</span>");
+                        "<span style='color:red;'>Server Error</span>";
+                });
 
-                } else {
-                    document.getElementById("status").innerHTML =
-                        "<span style='color:orange;'>Outside Event Area</span>";
-                }
+            },
 
-            })
-            .catch(error => {
+            function(error) {
                 document.getElementById("status").innerHTML =
-                    "<span style='color:red;'>Server Error</span>";
-            });
+                    "<span style='color:red;'>Location permission denied.</span>";
+            },
 
-        },
+            {
+                enableHighAccuracy: true,
+                maximumAge: 0,
+                timeout: 5000
+            }
 
-        function(error) {
-            document.getElementById("status").innerHTML =
-                "<span style='color:red;'>Location permission denied.</span>";
-        },
+        );
 
-        {
-            enableHighAccuracy: true,
-            maximumAge: 0,
-            timeout: 5000
-        }
-    );
+    }, 10000);  // 10 seconds update (6 times per minute)
+}
+
+
+function stopTracking() {
+
+    if (trackingInterval !== null) {
+        clearInterval(trackingInterval);
+        trackingInterval = null;
+        document.getElementById("status").innerHTML =
+            "<span style='color:gray;'>Tracking stopped.</span>";
+        document.getElementById("timestamp").innerHTML = "";
+    }
 }
 
 </script>

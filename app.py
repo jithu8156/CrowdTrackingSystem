@@ -1,8 +1,9 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 import os
+from shapely.geometry import Point, Polygon
 
 app = Flask(__name__)
-app.secret_key = "supersecretkey123"  # Needed for session
+app.secret_key = "supersecretkey123"
 
 # -------------------------
 # ADMIN CREDENTIALS
@@ -16,23 +17,37 @@ ADMIN_PASSWORD = "1234"
 user_locations = {}
 
 # -------------------------
-# GRID SQUARES
+# EVENT POLYGON (Define Event Boundary)
+# -------------------------
+event_polygon = Polygon([
+    (76.2665, 9.9305),
+    (76.2685, 9.9305),
+    (76.2685, 9.9325),
+    (76.2665, 9.9325)
+])
+
+def inside_event(lat, lon):
+    point = Point(lon, lat)
+    return event_polygon.contains(point)
+
+# -------------------------
+# GRID SQUARES (Inside Event Area)
 # -------------------------
 SQUARES = {
-    "A1": {"lat_min": 9.9300, "lat_max": 9.9315,
-           "lon_min": 76.2660, "lon_max": 76.2675,
+    "A1": {"lat_min": 9.9305, "lat_max": 9.9315,
+           "lon_min": 76.2665, "lon_max": 76.2675,
            "count": 0, "limit": 3},
 
-    "A2": {"lat_min": 9.9300, "lat_max": 9.9315,
-           "lon_min": 76.2675, "lon_max": 76.2690,
+    "A2": {"lat_min": 9.9305, "lat_max": 9.9315,
+           "lon_min": 76.2675, "lon_max": 76.2685,
            "count": 0, "limit": 3},
 
-    "B1": {"lat_min": 9.9315, "lat_max": 9.9330,
-           "lon_min": 76.2660, "lon_max": 76.2675,
+    "B1": {"lat_min": 9.9315, "lat_max": 9.9325,
+           "lon_min": 76.2665, "lon_max": 76.2675,
            "count": 0, "limit": 3},
 
-    "B2": {"lat_min": 9.9315, "lat_max": 9.9330,
-           "lon_min": 76.2675, "lon_max": 76.2690,
+    "B2": {"lat_min": 9.9315, "lat_max": 9.9325,
+           "lon_min": 76.2675, "lon_max": 76.2685,
            "count": 0, "limit": 3}
 }
 
@@ -46,21 +61,36 @@ def get_square(lat, lon):
             return square_id
     return None
 
-
+# -------------------------
+# HOME PAGE
+# -------------------------
 @app.route('/')
 def home():
     return render_template('index.html')
 
-
+# -------------------------
+# LOCATION UPDATE ROUTE
+# -------------------------
 @app.route('/update_location', methods=['POST'])
 def update_location():
     data = request.json
     lat = data["latitude"]
     lon = data["longitude"]
 
-    square = get_square(lat, lon)
     user_id = request.remote_addr
     previous_square = user_locations.get(user_id)
+
+    # First check if inside event polygon
+    if not inside_event(lat, lon):
+
+        if previous_square:
+            SQUARES[previous_square]["count"] -= 1
+            del user_locations[user_id]
+
+        return jsonify({"message": "Outside Event Area"})
+
+    # If inside event area
+    square = get_square(lat, lon)
 
     if square:
 
@@ -80,16 +110,10 @@ def update_location():
             "alert": alert
         })
 
-    else:
-        if previous_square:
-            SQUARES[previous_square]["count"] -= 1
-            del user_locations[user_id]
-
-        return jsonify({"message": "Outside event area"})
-
+    return jsonify({"message": "Inside event but not mapped square"})
 
 # -------------------------
-# ADMIN LOGIN ROUTE
+# ADMIN LOGIN
 # -------------------------
 @app.route('/admin', methods=['GET', 'POST'])
 def admin_login():
@@ -105,9 +129,8 @@ def admin_login():
 
     return render_template('admin_login.html')
 
-
 # -------------------------
-# PROTECTED DASHBOARD
+# DASHBOARD
 # -------------------------
 @app.route('/dashboard')
 def dashboard():
@@ -116,6 +139,15 @@ def dashboard():
 
     return render_template("dashboard.html", squares=SQUARES)
 
+# -------------------------
+# ADMIN MAP PAGE
+# -------------------------
+@app.route('/admin/map')
+def admin_map():
+    if not session.get('admin'):
+        return redirect(url_for('admin_login'))
+
+    return render_template("admin_map.html")
 
 # -------------------------
 # LOGOUT
@@ -125,7 +157,9 @@ def logout():
     session.pop('admin', None)
     return redirect(url_for('admin_login'))
 
-
+# -------------------------
+# RUN APP
+# -------------------------
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
