@@ -6,14 +6,17 @@
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
+    <!-- Leaflet Draw CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw/dist/leaflet.draw.css"/>
+
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
+    <!-- Leaflet Draw JS -->
+    <script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
+
     <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-        }
+        body { margin: 0; }
 
         .top-bar {
             background: #111;
@@ -21,35 +24,27 @@
             padding: 15px;
             display: flex;
             justify-content: space-between;
-            align-items: center;
-        }
-
-        .nav-btn {
-            padding: 8px 15px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            color: white;
-            background-color: #007bff;
-        }
-
-        .nav-btn:hover {
-            background-color: #0056b3;
         }
 
         #map {
             height: 600px;
-            width: 100%;
+        }
+
+        button {
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
 
 <div class="top-bar">
-    <div>📍 Event Boundary Map</div>
+    <div>📍 Draw Event Boundary</div>
     <div>
         <a href="/dashboard">
-            <button class="nav-btn">⬅ Back to Dashboard</button>
+            <button>⬅ Back</button>
         </a>
     </div>
 </div>
@@ -58,26 +53,50 @@
 
 <script>
 
-    // Initialize map (center around your event area)
     var map = L.map('map').setView([9.931, 76.267], 18);
 
-    // Load map tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    // Define event boundary polygon
-    var eventBoundary = L.polygon([
-        [9.9305, 76.2665],
-        [9.9305, 76.2685],
-        [9.9325, 76.2685],
-        [9.9325, 76.2665]
-    ], {
-        color: 'blue',
-        fillOpacity: 0.2
-    }).addTo(map);
+    // Feature group to store drawn shapes
+    var drawnItems = new L.FeatureGroup();
+    map.addLayer(drawnItems);
 
-    map.fitBounds(eventBoundary.getBounds());
+    // Add drawing controls
+    var drawControl = new L.Control.Draw({
+        draw: {
+            polygon: true,
+            rectangle: false,
+            circle: false,
+            marker: false,
+            polyline: false,
+            circlemarker: false
+        },
+        edit: {
+            featureGroup: drawnItems
+        }
+    });
+
+    map.addControl(drawControl);
+
+    // When a polygon is created
+    map.on(L.Draw.Event.CREATED, function (event) {
+        var layer = event.layer;
+
+        drawnItems.clearLayers(); // allow only one boundary
+        drawnItems.addLayer(layer);
+
+        var coordinates = layer.getLatLngs()[0];
+
+        var formattedCoords = coordinates.map(function(coord) {
+            return [coord.lng, coord.lat];
+        });
+
+        console.log("Selected Boundary:", formattedCoords);
+
+        alert("Boundary selected! Check console for coordinates.");
+    });
 
 </script>
 
