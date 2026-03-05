@@ -19,7 +19,6 @@ user_locations = {}
 # -------------------------
 # EVENT POLYGON (Dynamic)
 # -------------------------
-# Default polygon (used until admin draws a new one)
 event_polygon = Polygon([
     (76.2665, 9.9305),
     (76.2685, 9.9305),
@@ -29,7 +28,17 @@ event_polygon = Polygon([
 
 def inside_event(lat, lon):
     point = Point(lon, lat)
-    return event_polygon.contains(point)
+
+    # Add small tolerance for GPS error
+    buffered_polygon = event_polygon.buffer(0.0001)
+
+    inside = buffered_polygon.contains(point)
+
+    print("USER LOCATION:", lat, lon)
+    print("INSIDE EVENT:", inside)
+
+    return inside
+
 
 # -------------------------
 # GRID SQUARES
@@ -62,6 +71,7 @@ def get_square(lat, lon):
             return square_id
     return None
 
+
 # -------------------------
 # HOME PAGE
 # -------------------------
@@ -69,11 +79,13 @@ def get_square(lat, lon):
 def home():
     return render_template('index.html')
 
+
 # -------------------------
 # LOCATION UPDATE ROUTE
 # -------------------------
 @app.route('/update_location', methods=['POST'])
 def update_location():
+
     data = request.json
     lat = data["latitude"]
     lon = data["longitude"]
@@ -81,7 +93,7 @@ def update_location():
     user_id = request.remote_addr
     previous_square = user_locations.get(user_id)
 
-    # Check if user is inside the event boundary
+    # Check if user inside polygon
     if not inside_event(lat, lon):
 
         if previous_square:
@@ -112,11 +124,13 @@ def update_location():
 
     return jsonify({"message": "Inside event but not mapped square"})
 
+
 # -------------------------
 # SAVE EVENT BOUNDARY
 # -------------------------
 @app.route('/save_boundary', methods=['POST'])
 def save_boundary():
+
     global event_polygon
 
     data = request.json
@@ -126,63 +140,82 @@ def save_boundary():
         return jsonify({"status": "error", "message": "No coordinates received"})
 
     try:
-        # Convert coordinates to Shapely polygon
+
+        # Ensure polygon is closed
+        if coordinates[0] != coordinates[-1]:
+            coordinates.append(coordinates[0])
+
         event_polygon = Polygon(coordinates)
 
-        print("New Event Boundary Saved:", coordinates)
+        print("NEW EVENT BOUNDARY:", coordinates)
 
         return jsonify({"status": "success"})
+
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
+
 
 # -------------------------
 # ADMIN LOGIN
 # -------------------------
 @app.route('/admin', methods=['GET', 'POST'])
 def admin_login():
+
     if request.method == 'POST':
+
         username = request.form['username']
         password = request.form['password']
 
         if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
             session['admin'] = True
             return redirect(url_for('dashboard'))
+
         else:
             return render_template('admin_login.html', error="Invalid Credentials")
 
     return render_template('admin_login.html')
+
 
 # -------------------------
 # DASHBOARD
 # -------------------------
 @app.route('/dashboard')
 def dashboard():
+
     if not session.get('admin'):
         return redirect(url_for('admin_login'))
 
     return render_template("dashboard.html", squares=SQUARES)
+
 
 # -------------------------
 # ADMIN MAP PAGE
 # -------------------------
 @app.route('/admin/map')
 def admin_map():
+
     if not session.get('admin'):
         return redirect(url_for('admin_login'))
 
     return render_template("admin_map.html")
+
 
 # -------------------------
 # LOGOUT
 # -------------------------
 @app.route('/logout')
 def logout():
+
     session.pop('admin', None)
+
     return redirect(url_for('admin_login'))
+
 
 # -------------------------
 # RUN APP
 # -------------------------
 if __name__ == '__main__':
+
     port = int(os.environ.get("PORT", 5000))
+
     app.run(host="0.0.0.0", port=port)
