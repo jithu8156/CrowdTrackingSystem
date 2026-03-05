@@ -16,7 +16,7 @@
     <script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
 
     <style>
-        body { margin: 0; }
+        body { margin: 0; font-family: Arial; }
 
         .top-bar {
             background: #111;
@@ -24,6 +24,7 @@
             padding: 15px;
             display: flex;
             justify-content: space-between;
+            align-items: center;
         }
 
         #map {
@@ -44,7 +45,7 @@
     <div>📍 Draw Event Boundary</div>
     <div>
         <a href="/dashboard">
-            <button>⬅ Back</button>
+            <button>⬅ Back to Dashboard</button>
         </a>
     </div>
 </div>
@@ -53,17 +54,19 @@
 
 <script>
 
+    // Initialize map
     var map = L.map('map').setView([9.931, 76.267], 18);
 
+    // Map tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    // Feature group to store drawn shapes
+    // Layer to store drawn shapes
     var drawnItems = new L.FeatureGroup();
     map.addLayer(drawnItems);
 
-    // Add drawing controls
+    // Drawing controls
     var drawControl = new L.Control.Draw({
         draw: {
             polygon: true,
@@ -80,22 +83,50 @@
 
     map.addControl(drawControl);
 
-    // When a polygon is created
+    // When polygon is created
     map.on(L.Draw.Event.CREATED, function (event) {
+
         var layer = event.layer;
 
-        drawnItems.clearLayers(); // allow only one boundary
+        // allow only one boundary
+        drawnItems.clearLayers();
         drawnItems.addLayer(layer);
 
+        // Extract coordinates
         var coordinates = layer.getLatLngs()[0];
 
         var formattedCoords = coordinates.map(function(coord) {
             return [coord.lng, coord.lat];
         });
 
-        console.log("Selected Boundary:", formattedCoords);
+        console.log("Boundary:", formattedCoords);
 
-        alert("Boundary selected! Check console for coordinates.");
+        // Send to backend
+        fetch('/save_boundary', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                coordinates: formattedCoords
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+
+            if(data.status === "success"){
+                alert("Event boundary saved successfully!");
+            }
+            else{
+                alert("Error saving boundary: " + data.message);
+            }
+
+        })
+        .catch(error => {
+            console.error("Error:", error);
+            alert("Failed to save boundary.");
+        });
+
     });
 
 </script>

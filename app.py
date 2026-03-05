@@ -17,8 +17,9 @@ ADMIN_PASSWORD = "1234"
 user_locations = {}
 
 # -------------------------
-# EVENT POLYGON (Define Event Boundary)
+# EVENT POLYGON (Dynamic)
 # -------------------------
+# Default polygon (used until admin draws a new one)
 event_polygon = Polygon([
     (76.2665, 9.9305),
     (76.2685, 9.9305),
@@ -31,7 +32,7 @@ def inside_event(lat, lon):
     return event_polygon.contains(point)
 
 # -------------------------
-# GRID SQUARES (Inside Event Area)
+# GRID SQUARES
 # -------------------------
 SQUARES = {
     "A1": {"lat_min": 9.9305, "lat_max": 9.9315,
@@ -80,7 +81,7 @@ def update_location():
     user_id = request.remote_addr
     previous_square = user_locations.get(user_id)
 
-    # First check if inside event polygon
+    # Check if user is inside the event boundary
     if not inside_event(lat, lon):
 
         if previous_square:
@@ -89,7 +90,6 @@ def update_location():
 
         return jsonify({"message": "Outside Event Area"})
 
-    # If inside event area
     square = get_square(lat, lon)
 
     if square:
@@ -111,6 +111,29 @@ def update_location():
         })
 
     return jsonify({"message": "Inside event but not mapped square"})
+
+# -------------------------
+# SAVE EVENT BOUNDARY
+# -------------------------
+@app.route('/save_boundary', methods=['POST'])
+def save_boundary():
+    global event_polygon
+
+    data = request.json
+    coordinates = data.get("coordinates")
+
+    if not coordinates:
+        return jsonify({"status": "error", "message": "No coordinates received"})
+
+    try:
+        # Convert coordinates to Shapely polygon
+        event_polygon = Polygon(coordinates)
+
+        print("New Event Boundary Saved:", coordinates)
+
+        return jsonify({"status": "success"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
 
 # -------------------------
 # ADMIN LOGIN
