@@ -70,11 +70,24 @@ gap:20px;
 }
 
 .card{
-background:white;
 padding:20px;
 border-radius:10px;
 text-align:center;
 box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* SAFE ZONE */
+
+.safeCard{
+background:#dcfce7;
+border:2px solid #22c55e;
+}
+
+/* OVERCROWDED */
+
+.dangerCard{
+background:#fee2e2;
+border:2px solid #ef4444;
 }
 
 .safe{color:green}
@@ -112,7 +125,6 @@ display:none;
 
 <div class="content">
 
-<!-- DASHBOARD TAB -->
 <div id="dashboardTab">
 
 <div class="totalBox">
@@ -124,12 +136,8 @@ display:none;
 
 </div>
 
-
-<!-- MAP TAB -->
 <div id="map"></div>
 
-
-<!-- ANALYTICS TAB -->
 <div id="analyticsTab" style="display:none">
 
 <h3>Analytics Coming Soon</h3>
@@ -147,7 +155,7 @@ display:none;
 
 <script>
 
-/* ---------------- TAB SWITCHING ---------------- */
+/* TAB SWITCHING */
 
 function showTab(tab,element){
 
@@ -175,7 +183,7 @@ document.getElementById("analyticsTab").style.display="block";
 }
 
 
-/* ---------------- MAP SETUP ---------------- */
+/* MAP */
 
 var map=L.map('map').setView([9.931,76.267],18);
 
@@ -184,7 +192,7 @@ attribution:'© OpenStreetMap'
 }).addTo(map);
 
 
-/* ---------------- DRAW EVENT BOUNDARY ---------------- */
+/* DRAW EVENT AREA */
 
 var drawnItems=new L.FeatureGroup();
 map.addLayer(drawnItems);
@@ -209,7 +217,7 @@ featureGroup:drawnItems
 map.addControl(drawControl);
 
 
-/* ---------------- SAVE BOUNDARY ---------------- */
+/* SAVE EVENT AREA */
 
 map.on(L.Draw.Event.CREATED,function(event){
 
@@ -258,7 +266,7 @@ alert("Error saving boundary");
 });
 
 
-/* ---------------- LIVE USERS ---------------- */
+/* LIVE USERS */
 
 var userMarkers={};
 
@@ -312,7 +320,7 @@ userMarkers[id]=marker;
 setInterval(updateUsers,3000);
 
 
-/* ---------------- DASHBOARD GRID ---------------- */
+/* DASHBOARD GRID */
 
 function updateDashboard(){
 
@@ -349,12 +357,14 @@ let square=data[id];
 
 totalPeople+=square.count;
 
-let status=square.count>square.limit
+let isOvercrowded = square.count > square.limit;
+
+let status=isOvercrowded
 ? '<p class="danger">⚠ OVERCROWDED</p>'
 : '<p class="safe">Safe</p>';
 
 let card=`
-<div class="card">
+<div class="card ${isOvercrowded ? "dangerCard" : "safeCard"}">
 <h3>Square ${id}</h3>
 <p>People: ${square.count}</p>
 <p>Limit: ${square.limit}</p>
