@@ -1,80 +1,140 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Admin Dashboard</title>
-    <meta http-equiv="refresh" content="3">
+<title>Admin Crowd Dashboard</title>
+<meta http-equiv="refresh" content="3">
 
-    <style>
-        body{
-            font-family: Arial;
-            margin:0;
-            background:#f4f4f4;
-        }
+<style>
 
-        .topbar{
-            background:#111;
-            color:white;
-            padding:15px;
-            display:flex;
-            justify-content:space-between;
-        }
+body{
+    margin:0;
+    font-family:Arial, Helvetica, sans-serif;
+    background:#f4f6f9;
+}
 
-        .container{
-            display:grid;
-            grid-template-columns: repeat(4,1fr);
-            gap:20px;
-            padding:30px;
-        }
+.topbar{
+    background:#1f2937;
+    color:white;
+    padding:15px 30px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
 
-        .card{
-            background:white;
-            padding:20px;
-            border-radius:10px;
-            text-align:center;
-            box-shadow:0 3px 8px rgba(0,0,0,0.1);
-        }
+.topbar h2{
+    margin:0;
+}
 
-        .safe{
-            color:green;
-            font-weight:bold;
-        }
+.buttons{
+    display:flex;
+    gap:10px;
+}
 
-        .danger{
-            color:red;
-            font-weight:bold;
-        }
+button{
+    padding:8px 14px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+}
 
-        button{
-            padding:8px 15px;
-            border:none;
-            border-radius:5px;
-            cursor:pointer;
-        }
-    </style>
+.map-btn{
+    background:#3b82f6;
+    color:white;
+}
+
+.logout-btn{
+    background:#ef4444;
+    color:white;
+}
+
+.dashboard{
+    padding:30px;
+}
+
+.total-box{
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    width:250px;
+    margin-bottom:25px;
+    box-shadow:0 3px 8px rgba(0,0,0,0.1);
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:20px;
+}
+
+.card{
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    text-align:center;
+    box-shadow:0 3px 8px rgba(0,0,0,0.1);
+    transition:0.2s;
+}
+
+.safe{
+    color:#16a34a;
+    font-weight:bold;
+}
+
+.danger{
+    color:#dc2626;
+    font-weight:bold;
+}
+
+.overcrowded{
+    border:3px solid #dc2626;
+}
+
+</style>
 </head>
 
 <body>
 
 <div class="topbar">
-    <div>📊 Crowd Monitoring Dashboard</div>
 
-    <div>
-        <a href="/admin/map"><button>Define Event Area</button></a>
-        <a href="/logout"><button>Logout</button></a>
-    </div>
+<h2>📊 Crowd Monitoring Dashboard</h2>
+
+<div class="buttons">
+
+<a href="/admin/map">
+<button class="map-btn">Define Event Area</button>
+</a>
+
+<a href="/logout">
+<button class="logout-btn">Logout</button>
+</a>
+
 </div>
 
-<div class="container">
+</div>
+
+<div class="dashboard">
+
+<div class="total-box">
+
+<h3>Total Crowd</h3>
+
+<p style="font-size:28px;font-weight:bold;">
+{{ squares.values() | sum(attribute='count') }}
+</p>
+
+</div>
+
+<div class="grid">
 
 {% for id, square in squares.items() %}
 
-<div class="card">
+<div class="card {% if square.count > square.limit %}overcrowded{% endif %}">
 
 <h3>Square {{ id }}</h3>
 
-<p>People: {{ square.count }}</p>
+<p><strong>People:</strong> {{ square.count }}</p>
 
-<p>Limit: {{ square.limit }}</p>
+<p><strong>Limit:</strong> {{ square.limit }}</p>
 
 {% if square.count > square.limit %}
 <p class="danger">⚠ OVERCROWDED</p>
@@ -85,6 +145,8 @@
 </div>
 
 {% endfor %}
+
+</div>
 
 </div>
 
