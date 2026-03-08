@@ -103,9 +103,9 @@ def update_location():
 
     lat = float(data["latitude"])
     lon = float(data["longitude"])
-    user_id = data["device_id"]   # UNIQUE device ID
+    user_id = data["device_id"]
 
-    # Store live GPS
+    # Save live coordinates
     user_coordinates[user_id] = {
         "lat": lat,
         "lon": lon
@@ -113,10 +113,11 @@ def update_location():
 
     previous_square = user_locations.get(user_id)
 
-    # Check if inside event
+    # If user outside event
     if not inside_event(lat, lon):
 
         if previous_square and previous_square in SQUARES:
+
             SQUARES[previous_square]["count"] = max(
                 0, SQUARES[previous_square]["count"] - 1)
 
@@ -128,16 +129,23 @@ def update_location():
 
     if square:
 
-        if previous_square and previous_square != square and previous_square in SQUARES:
-
-            SQUARES[previous_square]["count"] = max(
-                0, SQUARES[previous_square]["count"] - 1)
-
-        if previous_square != square:
+        # FIRST ENTRY
+        if previous_square is None:
 
             SQUARES[square]["count"] += 1
+            user_locations[user_id] = square
 
-        user_locations[user_id] = square
+        # MOVED TO ANOTHER SQUARE
+        elif previous_square != square:
+
+            if previous_square in SQUARES:
+                SQUARES[previous_square]["count"] = max(
+                    0, SQUARES[previous_square]["count"] - 1)
+
+            SQUARES[square]["count"] += 1
+            user_locations[user_id] = square
+
+        # SAME SQUARE → NO CHANGE
 
         alert = SQUARES[square]["count"] > SQUARES[square]["limit"]
 
