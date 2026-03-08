@@ -5,88 +5,79 @@ from shapely.geometry import Point, Polygon
 app = Flask(__name__)
 app.secret_key = "supersecretkey123"
 
+# -------------------------
+# ADMIN CREDENTIALS
+# -------------------------
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "1234"
 
-# Store user square positions
+# -------------------------
+# USER LOCATION STORAGE
+# -------------------------
 user_locations = {}
 
-# Store live GPS coordinates
-user_coordinates = {}
-
-event_polygon = None
-SQUARES = {}
-
-GRID_SIZE = 4   # 4x4 grid
-
+# -------------------------
+# EVENT POLYGON (Dynamic)
+# -------------------------
+event_polygon = Polygon([
+    (76.2665, 9.9305),
+    (76.2685, 9.9305),
+    (76.2685, 9.9325),
+    (76.2665, 9.9325)
+])
 
 # -------------------------
-# Check inside event
+# CHECK IF USER INSIDE EVENT
 # -------------------------
 def inside_event(lat, lon):
 
-    if not event_polygon:
-        return False
-
     point = Point(lon, lat)
 
-    return event_polygon.buffer(0.0003).contains(point)
+    # Add tolerance for GPS inaccuracies (~30m)
+    expanded_polygon = event_polygon.buffer(0.0003)
+
+    inside = expanded_polygon.contains(point)
+
+    print("USER LOCATION:", lat, lon)
+    print("INSIDE EVENT:", inside)
+
+    return inside
 
 
 # -------------------------
-# Generate grid squares
+# GRID SQUARES
 # -------------------------
-def generate_grid(coords):
+SQUARES = {
+    "A1": {"lat_min": 9.9305, "lat_max": 9.9315,
+           "lon_min": 76.2665, "lon_max": 76.2675,
+           "count": 0, "limit": 3},
 
-    global SQUARES
+    "A2": {"lat_min": 9.9305, "lat_max": 9.9315,
+           "lon_min": 76.2675, "lon_max": 76.2685,
+           "count": 0, "limit": 3},
 
-    lats = [lat for lon, lat in coords]
-    lons = [lon for lon, lat in coords]
+    "B1": {"lat_min": 9.9315, "lat_max": 9.9325,
+           "lon_min": 76.2665, "lon_max": 76.2675,
+           "count": 0, "limit": 3},
 
-    lat_min = min(lats)
-    lat_max = max(lats)
-    lon_min = min(lons)
-    lon_max = max(lons)
-
-    lat_step = (lat_max - lat_min) / GRID_SIZE
-    lon_step = (lon_max - lon_min) / GRID_SIZE
-
-    SQUARES = {}
-
-    for i in range(GRID_SIZE):
-        for j in range(GRID_SIZE):
-
-            square_id = f"{chr(65+i)}{j+1}"
-
-            SQUARES[square_id] = {
-                "lat_min": lat_min + i * lat_step,
-                "lat_max": lat_min + (i + 1) * lat_step,
-                "lon_min": lon_min + j * lon_step,
-                "lon_max": lon_min + (j + 1) * lon_step,
-                "count": 0,
-                "limit": 5
-            }
-
-    print("Generated Squares:", SQUARES)
-
+    "B2": {"lat_min": 9.9315, "lat_max": 9.9325,
+           "lon_min": 76.2675, "lon_max": 76.2685,
+           "count": 0, "limit": 3}
+}
 
 # -------------------------
-# Detect square
+# DETECT GRID SQUARE
 # -------------------------
 def get_square(lat, lon):
-
     for square_id, square in SQUARES.items():
-
         if (square["lat_min"] <= lat <= square["lat_max"] and
             square["lon_min"] <= lon <= square["lon_max"]):
-
             return square_id
-
     return None
 
 
 # -------------------------
-# Home
+# HOME PAGE
 # -------------------------
 @app.route('/')
 def home():
@@ -94,7 +85,7 @@ def home():
 
 
 # -------------------------
-# Update location
+# LOCATION UPDATE
 # -------------------------
 @app.route('/update_location', methods=['POST'])
 def update_location():
@@ -104,15 +95,9 @@ def update_location():
     lon = float(data["longitude"])
 
     user_id = request.remote_addr
-
-    # Save live coordinates
-    user_coordinates[user_id] = {
-        "lat": lat,
-        "lon": lon
-    }
-
     previous_square = user_locations.get(user_id)
 
+    # Check polygon
     if not inside_event(lat, lon):
 
         if previous_square:
@@ -145,16 +130,7 @@ def update_location():
 
 
 # -------------------------
-# Live user API
-# -------------------------
-@app.route('/live_users')
-def live_users():
-
-    return jsonify(user_coordinates)
-
-
-# -------------------------
-# Save boundary
+# SAVE EVENT BOUNDARY
 # -------------------------
 @app.route('/save_boundary', methods=['POST'])
 def save_boundary():
@@ -165,30 +141,29 @@ def save_boundary():
     coordinates = data.get("coordinates")
 
     if not coordinates:
-        return jsonify({"status": "error"})
+        return jsonify({"status": "error", "message": "No coordinates received"})
 
     try:
 
+        # Convert coordinates properly (lng, lat)
         corrected_coords = [(float(lon), float(lat)) for lon, lat in coordinates]
 
+        # Ensure polygon closes
         if corrected_coords[0] != corrected_coords[-1]:
             corrected_coords.append(corrected_coords[0])
 
         event_polygon = Polygon(corrected_coords)
 
-        generate_grid(corrected_coords)
-
-        print("EVENT POLYGON SET")
+        print("NEW EVENT POLYGON:", corrected_coords)
 
         return jsonify({"status": "success"})
 
     except Exception as e:
-
         return jsonify({"status": "error", "message": str(e)})
 
 
 # -------------------------
-# Admin login
+# ADMIN LOGIN
 # -------------------------
 @app.route('/admin', methods=['GET', 'POST'])
 def admin_login():
@@ -199,18 +174,17 @@ def admin_login():
         password = request.form['password']
 
         if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
-
             session['admin'] = True
-
             return redirect(url_for('dashboard'))
 
-        return render_template('admin_login.html', error="Invalid Credentials")
+        else:
+            return render_template('admin_login.html', error="Invalid Credentials")
 
     return render_template('admin_login.html')
 
 
 # -------------------------
-# Dashboard
+# DASHBOARD
 # -------------------------
 @app.route('/dashboard')
 def dashboard():
@@ -222,7 +196,7 @@ def dashboard():
 
 
 # -------------------------
-# Admin map
+# ADMIN MAP PAGE
 # -------------------------
 @app.route('/admin/map')
 def admin_map():
@@ -234,18 +208,17 @@ def admin_map():
 
 
 # -------------------------
-# Logout
+# LOGOUT
 # -------------------------
 @app.route('/logout')
 def logout():
 
     session.pop('admin', None)
-
     return redirect(url_for('admin_login'))
 
 
 # -------------------------
-# Run
+# RUN SERVER
 # -------------------------
 if __name__ == '__main__':
 
