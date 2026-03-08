@@ -1,18 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Define Event Area</title>
+<title>Event Monitoring Map</title>
 
-<!-- Leaflet CSS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-
-<!-- Leaflet Draw CSS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet-draw/dist/leaflet.draw.css"/>
 
-<!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
-<!-- Leaflet Draw JS -->
 <script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
 
 <style>
@@ -20,26 +14,39 @@
 body{
 margin:0;
 font-family:Arial;
+background:#f4f6f9;
 }
 
 .top-bar{
-background:#111;
+background:#1f2937;
 color:white;
-padding:15px;
+padding:15px 25px;
 display:flex;
 justify-content:space-between;
 align-items:center;
 }
 
-#map{
-height:600px;
+.top-bar h2{
+margin:0;
 }
 
 button{
-padding:8px 12px;
-border-radius:5px;
+padding:8px 14px;
 border:none;
+border-radius:6px;
 cursor:pointer;
+background:#3b82f6;
+color:white;
+}
+
+#status{
+background:#e5e7eb;
+padding:10px;
+font-size:14px;
+}
+
+#map{
+height:620px;
 }
 
 </style>
@@ -50,14 +57,16 @@ cursor:pointer;
 
 <div class="top-bar">
 
-<div>📍 Draw Event Boundary</div>
+<h2>📍 Event Boundary & Live Crowd Map</h2>
 
-<div>
 <a href="/dashboard">
-<button>⬅ Back to Dashboard</button>
+<button>⬅ Dashboard</button>
 </a>
+
 </div>
 
+<div id="status">
+Draw the event boundary using the polygon tool.
 </div>
 
 <div id="map"></div>
@@ -66,10 +75,10 @@ cursor:pointer;
 
 // ---------------- MAP SETUP ----------------
 
-var map = L.map('map').setView([9.931, 76.267], 18);
+var map = L.map('map').setView([9.931,76.267],18);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-attribution:'© OpenStreetMap contributors'
+attribution:'© OpenStreetMap'
 }).addTo(map);
 
 
@@ -79,6 +88,7 @@ var drawnItems = new L.FeatureGroup();
 map.addLayer(drawnItems);
 
 var drawControl = new L.Control.Draw({
+
 draw:{
 polygon:true,
 rectangle:false,
@@ -87,9 +97,11 @@ marker:false,
 polyline:false,
 circlemarker:false
 },
+
 edit:{
 featureGroup:drawnItems
 }
+
 });
 
 map.addControl(drawControl);
@@ -110,6 +122,8 @@ var formattedCoords = coordinates.map(function(coord){
 return [coord.lng,coord.lat];
 });
 
+document.getElementById("status").innerText="Saving boundary...";
+
 fetch('/save_boundary',{
 method:'POST',
 headers:{
@@ -119,16 +133,30 @@ body:JSON.stringify({
 coordinates:formattedCoords
 })
 })
+
 .then(response=>response.json())
+
 .then(data=>{
 
 if(data.status==="success"){
-alert("Event boundary saved successfully!");
-}
-else{
-alert("Error saving boundary: "+data.message);
+
+document.getElementById("status").innerText=
+"✅ Event boundary saved successfully";
+
+map.fitBounds(layer.getBounds());
+
+}else{
+
+document.getElementById("status").innerText=
+"❌ Error saving boundary";
+
 }
 
+})
+
+.catch(()=>{
+document.getElementById("status").innerText=
+"❌ Server connection error";
 });
 
 });
@@ -136,7 +164,7 @@ alert("Error saving boundary: "+data.message);
 
 // ---------------- LIVE USER TRACKING ----------------
 
-var userMarkers = {};
+var userMarkers={};
 
 function updateUsers(){
 
@@ -148,8 +176,8 @@ fetch('/live_users')
 
 for(let id in data){
 
-let lat = data[id].lat;
-let lon = data[id].lon;
+let lat=data[id].lat;
+let lon=data[id].lon;
 
 if(userMarkers[id]){
 
@@ -157,18 +185,18 @@ userMarkers[id].setLatLng([lat,lon]);
 
 }else{
 
-let marker = L.circleMarker([lat,lon],{
+let marker=L.circleMarker([lat,lon],{
 
-radius:8,
-color:"red",
-fillColor:"red",
-fillOpacity:0.8
+radius:7,
+color:"#ef4444",
+fillColor:"#ef4444",
+fillOpacity:0.9
 
 }).addTo(map);
 
-marker.bindPopup("User");
+marker.bindPopup("📍 Event User");
 
-userMarkers[id] = marker;
+userMarkers[id]=marker;
 
 }
 
