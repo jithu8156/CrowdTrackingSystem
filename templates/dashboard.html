@@ -10,6 +10,9 @@
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
 
+<!-- HEATMAP LIBRARY -->
+<script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+
 <style>
 
 body{
@@ -184,6 +187,15 @@ attribution:'© OpenStreetMap'
 }).addTo(map);
 
 
+/* ---------------- HEATMAP LAYER ---------------- */
+
+var heatLayer = L.heatLayer([],{
+radius:25,
+blur:20,
+maxZoom:18
+}).addTo(map);
+
+
 /* ---------------- DRAW EVENT BOUNDARY ---------------- */
 
 var drawnItems=new L.FeatureGroup();
@@ -258,7 +270,7 @@ alert("Error saving boundary");
 });
 
 
-/* ---------------- LIVE USERS ---------------- */
+/* ---------------- LIVE USERS + HEATMAP ---------------- */
 
 var userMarkers={};
 
@@ -269,6 +281,8 @@ fetch('/live_users')
 .then(res=>res.json())
 
 .then(data=>{
+
+let heatPoints=[];
 
 for(let id in userMarkers){
 
@@ -284,6 +298,8 @@ for(let id in data){
 let lat=data[id].lat;
 let lon=data[id].lon;
 
+heatPoints.push([lat,lon,0.6]);
+
 if(userMarkers[id]){
 
 userMarkers[id].setLatLng([lat,lon]);
@@ -292,8 +308,8 @@ userMarkers[id].setLatLng([lat,lon]);
 
 let marker=L.circleMarker([lat,lon],{
 
-radius:7,
-color:"red",
+radius:6,
+color:"white",
 fillColor:"red",
 fillOpacity:0.9
 
@@ -304,6 +320,8 @@ userMarkers[id]=marker;
 }
 
 }
+
+heatLayer.setLatLngs(heatPoints);
 
 });
 
