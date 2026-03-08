@@ -2,147 +2,88 @@
 <html>
 <head>
     <title>Admin Dashboard</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <meta http-equiv="refresh" content="3">
 
     <style>
-        body {
-            margin: 0;
+        body{
+            font-family: Arial;
+            margin:0;
+            background:#f4f4f4;
         }
 
-        .header {     
-            text-align: center;
-            padding: 20px;
+        .topbar{
+            background:#111;
+            color:white;
+            padding:15px;
+            display:flex;
+            justify-content:space-between;
         }
 
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 30px;
-            background: #111;
-            color: white;
-            align-items: center;
+        .container{
+            display:grid;
+            grid-template-columns: repeat(4,1fr);
+            gap:20px;
+            padding:30px;
         }
 
-        .nav-buttons a {
-            margin-right: 10px;
+        .card{
+            background:white;
+            padding:20px;
+            border-radius:10px;
+            text-align:center;
+            box-shadow:0 3px 8px rgba(0,0,0,0.1);
         }
 
-        .nav-btn {
-            padding: 8px 15px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            color: white;
-            background-color: #007bff;
+        .safe{
+            color:green;
+            font-weight:bold;
         }
 
-        .nav-btn:hover {
-            background-color: #0056b3;
+        .danger{
+            color:red;
+            font-weight:bold;
         }
 
-        .logout-btn {
-            padding: 8px 15px;
-            background-color: #ff4c4c;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            color: white;
-        }
-
-        .logout-btn:hover {
-            background-color: #cc0000;
-        }
-
-        .dashboard-container {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-            padding: 20px;
-            max-width: 900px;
-            margin: auto;
-        }
-
-        .square-card {
-            padding: 20px;
-            border-radius: 10px;
-            color: white;
-            font-size: 18px;
-            transition: 0.3s ease;
-        }
-
-        .safe-square {
-            background-color: #1f8a3d;
-        }
-
-        .danger-square {
-            background-color: #b02a2a;
-            animation: blink 1s infinite;
-        }
-
-        .total-box {
-            text-align: center;
-            font-size: 20px;
-            margin: 15px;
-        }
-
-        @keyframes blink {
-            0% { opacity: 1; }
-            50% { opacity: 0.6; }
-            100% { opacity: 1; }
+        button{
+            padding:8px 15px;
+            border:none;
+            border-radius:5px;
+            cursor:pointer;
         }
     </style>
 </head>
 
 <body>
 
-<div class="top-bar">
+<div class="topbar">
+    <div>📊 Crowd Monitoring Dashboard</div>
+
     <div>
-        👤 Logged in as Admin
-    </div>
-
-    <div class="nav-buttons">
-        <a href="/admin/map">
-            <button class="nav-btn">📍 Define Event Area</button>
-        </a>
-
-        <a href="/logout">
-            <button class="logout-btn">Logout</button>
-        </a>
+        <a href="/admin/map"><button>Define Event Area</button></a>
+        <a href="/logout"><button>Logout</button></a>
     </div>
 </div>
 
-<div class="header">
-    <h1>📊 Live Crowd Monitoring Dashboard</h1>
-</div>
-
-<div class="total-box">
-    <strong>Total Crowd:</strong>
-    {{ squares.values() | sum(attribute='count') }}
-</div>
-
-<div class="dashboard-container">
+<div class="container">
 
 {% for id, square in squares.items() %}
-    <div class="square-card 
-        {% if square.count > square.limit %}
-            danger-square
-        {% else %}
-            safe-square
-        {% endif %}
-    ">
 
-        <h3>Square {{ id }}</h3>
-        <p><strong>Current Count:</strong> {{ square.count }}</p>
-        <p><strong>Limit:</strong> {{ square.limit }}</p>
+<div class="card">
 
-        {% if square.count > square.limit %}
-            <p>⚠ OVERCROWDED</p>
-        {% else %}
-            <p>Safe</p>
-        {% endif %}
+<h3>Square {{ id }}</h3>
 
-    </div>
+<p>People: {{ square.count }}</p>
+
+<p>Limit: {{ square.limit }}</p>
+
+{% if square.count > square.limit %}
+<p class="danger">⚠ OVERCROWDED</p>
+{% else %}
+<p class="safe">Safe</p>
+{% endif %}
+
+</div>
+
 {% endfor %}
 
 </div>
