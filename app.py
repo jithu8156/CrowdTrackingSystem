@@ -103,8 +103,7 @@ def update_location():
 
     lat = float(data["latitude"])
     lon = float(data["longitude"])
-
-    user_id = request.remote_addr
+    user_id = data["device_id"]   # UNIQUE device ID
 
     # Store live GPS
     user_coordinates[user_id] = {
@@ -118,7 +117,9 @@ def update_location():
     if not inside_event(lat, lon):
 
         if previous_square and previous_square in SQUARES:
-            SQUARES[previous_square]["count"] -= 1
+            SQUARES[previous_square]["count"] = max(
+                0, SQUARES[previous_square]["count"] - 1)
+
             del user_locations[user_id]
 
         return jsonify({"message": "Outside Event Area"})
@@ -128,9 +129,12 @@ def update_location():
     if square:
 
         if previous_square and previous_square != square and previous_square in SQUARES:
-            SQUARES[previous_square]["count"] -= 1
+
+            SQUARES[previous_square]["count"] = max(
+                0, SQUARES[previous_square]["count"] - 1)
 
         if previous_square != square:
+
             SQUARES[square]["count"] += 1
 
         user_locations[user_id] = square

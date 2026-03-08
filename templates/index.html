@@ -15,7 +15,7 @@
         <button onclick="stopTracking()" style="margin-left:10px;">Stop</button>
 
         <div id="status" style="margin-top:20px;"></div>
-        <div id="timestamp" style="margin-top:10px; font-size:14px;"></div>
+        <div id="timestamp" style="margin-top:10px;font-size:14px;"></div>
     </div>
 </div>
 
@@ -23,90 +23,117 @@
 
 let trackingInterval = null;
 
-function startTracking() {
+/* ---------------- DEVICE ID ---------------- */
+
+let deviceId = localStorage.getItem("device_id");
+
+if(!deviceId){
+    deviceId = crypto.randomUUID();
+    localStorage.setItem("device_id", deviceId);
+}
+
+
+/* ---------------- START TRACKING ---------------- */
+
+function startTracking(){
 
     document.getElementById("status").innerHTML = "Initializing GPS...";
-    
-    // Prevent multiple intervals
-    if (trackingInterval !== null) {
+
+    if(trackingInterval !== null){
         return;
     }
 
-    trackingInterval = setInterval(function() {
+    trackingInterval = setInterval(function(){
 
         navigator.geolocation.getCurrentPosition(
 
-            function(position) {
+            function(position){
 
-                fetch('/update_location', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
+                fetch('/update_location',{
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({
+
+                        device_id: deviceId,
+
                         latitude: position.coords.latitude,
                         longitude: position.coords.longitude,
                         accuracy: position.coords.accuracy
                     })
                 })
-                .then(res => res.json())
-                .then(data => {
+
+                .then(res=>res.json())
+
+                .then(data=>{
 
                     let now = new Date();
+
                     document.getElementById("timestamp").innerHTML =
-                        "Last Updated: " + now.toLocaleTimeString();
+                    "Last Updated: " + now.toLocaleTimeString();
 
-                    if (data.square) {
-
-                        document.getElementById("status").innerHTML =
-                            "<strong>Square:</strong> " + data.square +
-                            "<br><strong>Count:</strong> " + data.count +
-                            "<br><strong>GPS Accuracy:</strong> "
-                            + position.coords.accuracy.toFixed(2) + " meters" +
-                            (data.alert
-                                ? "<br><span style='color:red;'>⚠ OVERCROWDED</span>"
-                                : "<br><span style='color:green;'>Safe</span>");
-
-                    } else {
+                    if(data.square){
 
                         document.getElementById("status").innerHTML =
-                            "<span style='color:orange;'>Outside Event Area</span>" +
-                            "<br><strong>GPS Accuracy:</strong> "
-                            + position.coords.accuracy.toFixed(2) + " meters";
+                        "<strong>Square:</strong> " + data.square +
+                        "<br><strong>Count:</strong> " + data.count +
+                        "<br><strong>GPS Accuracy:</strong> " +
+                        position.coords.accuracy.toFixed(2) + " meters" +
+                        (data.alert
+                        ? "<br><span style='color:red;'>⚠ OVERCROWDED</span>"
+                        : "<br><span style='color:green;'>Safe</span>");
+
+                    }else{
+
+                        document.getElementById("status").innerHTML =
+                        "<span style='color:orange;'>Outside Event Area</span>" +
+                        "<br><strong>GPS Accuracy:</strong> " +
+                        position.coords.accuracy.toFixed(2) + " meters";
                     }
 
                 })
-                .catch(error => {
+
+                .catch(error=>{
                     document.getElementById("status").innerHTML =
-                        "<span style='color:red;'>Server Error</span>";
+                    "<span style='color:red;'>Server Error</span>";
                 });
 
             },
 
-            function(error) {
+            function(error){
                 document.getElementById("status").innerHTML =
-                    "<span style='color:red;'>Location permission denied.</span>";
+                "<span style='color:red;'>Location permission denied.</span>";
             },
 
             {
-                enableHighAccuracy: true,
-                maximumAge: 0,
-                timeout: 5000
+                enableHighAccuracy:true,
+                maximumAge:0,
+                timeout:5000
             }
 
         );
 
-    }, 10000);  // 10 seconds update (6 times per minute)
+    },10000); // update every 10 seconds
+
 }
 
 
-function stopTracking() {
+/* ---------------- STOP TRACKING ---------------- */
 
-    if (trackingInterval !== null) {
+function stopTracking(){
+
+    if(trackingInterval !== null){
+
         clearInterval(trackingInterval);
+
         trackingInterval = null;
+
         document.getElementById("status").innerHTML =
-            "<span style='color:gray;'>Tracking stopped.</span>";
+        "<span style='color:gray;'>Tracking stopped.</span>";
+
         document.getElementById("timestamp").innerHTML = "";
+
     }
+
 }
 
 </script>
