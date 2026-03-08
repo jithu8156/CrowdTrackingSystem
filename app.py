@@ -26,13 +26,17 @@ event_polygon = Polygon([
     (76.2665, 9.9325)
 ])
 
+# -------------------------
+# CHECK IF USER INSIDE EVENT
+# -------------------------
 def inside_event(lat, lon):
+
     point = Point(lon, lat)
 
-    # Add small tolerance for GPS error
-    buffered_polygon = event_polygon.buffer(0.0001)
+    # Add tolerance for GPS inaccuracies (~30m)
+    expanded_polygon = event_polygon.buffer(0.0003)
 
-    inside = buffered_polygon.contains(point)
+    inside = expanded_polygon.contains(point)
 
     print("USER LOCATION:", lat, lon)
     print("INSIDE EVENT:", inside)
@@ -62,7 +66,7 @@ SQUARES = {
 }
 
 # -------------------------
-# Detect square
+# DETECT GRID SQUARE
 # -------------------------
 def get_square(lat, lon):
     for square_id, square in SQUARES.items():
@@ -81,19 +85,19 @@ def home():
 
 
 # -------------------------
-# LOCATION UPDATE ROUTE
+# LOCATION UPDATE
 # -------------------------
 @app.route('/update_location', methods=['POST'])
 def update_location():
 
     data = request.json
-    lat = data["latitude"]
-    lon = data["longitude"]
+    lat = float(data["latitude"])
+    lon = float(data["longitude"])
 
     user_id = request.remote_addr
     previous_square = user_locations.get(user_id)
 
-    # Check if user inside polygon
+    # Check polygon
     if not inside_event(lat, lon):
 
         if previous_square:
@@ -141,13 +145,16 @@ def save_boundary():
 
     try:
 
-        # Ensure polygon is closed
-        if coordinates[0] != coordinates[-1]:
-            coordinates.append(coordinates[0])
+        # Convert coordinates properly (lng, lat)
+        corrected_coords = [(float(lon), float(lat)) for lon, lat in coordinates]
 
-        event_polygon = Polygon(coordinates)
+        # Ensure polygon closes
+        if corrected_coords[0] != corrected_coords[-1]:
+            corrected_coords.append(corrected_coords[0])
 
-        print("NEW EVENT BOUNDARY:", coordinates)
+        event_polygon = Polygon(corrected_coords)
+
+        print("NEW EVENT POLYGON:", corrected_coords)
 
         return jsonify({"status": "success"})
 
@@ -207,12 +214,11 @@ def admin_map():
 def logout():
 
     session.pop('admin', None)
-
     return redirect(url_for('admin_login'))
 
 
 # -------------------------
-# RUN APP
+# RUN SERVER
 # -------------------------
 if __name__ == '__main__':
 
