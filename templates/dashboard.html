@@ -44,6 +44,21 @@ cursor:pointer;
 padding:25px;
 }
 
+.totalBox{
+background:white;
+padding:20px;
+border-radius:10px;
+text-align:center;
+margin-bottom:20px;
+box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
+
+.totalBox h1{
+margin:0;
+color:#2563eb;
+font-size:40px;
+}
+
 .grid{
 display:grid;
 grid-template-columns:repeat(4,1fr);
@@ -95,6 +110,11 @@ display:none;
 
 <!-- DASHBOARD TAB -->
 <div id="dashboardTab">
+
+<div class="totalBox">
+<h3>Total Devices in Event Area</h3>
+<h1 id="totalCount">0</h1>
+</div>
 
 <div id="gridContainer" class="grid">
 
@@ -247,7 +267,6 @@ fetch('/live_users')
 
 .then(data=>{
 
-// REMOVE USERS WHO LEFT
 for(let id in userMarkers){
 
 if(!(id in data)){
@@ -259,7 +278,6 @@ delete userMarkers[id];
 
 }
 
-// ADD / UPDATE USERS
 for(let id in data){
 
 let lat=data[id].lat;
@@ -304,8 +322,11 @@ fetch('/dashboard_data')
 .then(data=>{
 
 const grid=document.getElementById("gridContainer");
+const total=document.getElementById("totalCount");
 
 grid.innerHTML="";
+
+let totalPeople=0;
 
 if(Object.keys(data).length===0){
 
@@ -316,12 +337,16 @@ grid.innerHTML=`
 </div>
 `;
 
+total.innerText=0;
+
 return;
 }
 
 for(const id in data){
 
 let square=data[id];
+
+totalPeople+=square.count;
 
 let status=square.count>square.limit
 ? '<p class="danger">⚠ OVERCROWDED</p>'
@@ -339,6 +364,8 @@ ${status}
 grid.innerHTML+=card;
 
 }
+
+total.innerText=totalPeople;
 
 });
 
