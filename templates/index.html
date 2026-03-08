@@ -112,7 +112,7 @@ function startTracking(){
 
         );
 
-    },10000); // update every 10 seconds
+    },10000);
 
 }
 
@@ -124,8 +124,16 @@ function stopTracking(){
     if(trackingInterval !== null){
 
         clearInterval(trackingInterval);
-
         trackingInterval = null;
+
+        // Notify server that user left event
+        fetch('/leave_event',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({
+                device_id: deviceId
+            })
+        });
 
         document.getElementById("status").innerHTML =
         "<span style='color:gray;'>Tracking stopped.</span>";

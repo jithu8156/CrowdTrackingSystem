@@ -113,13 +113,14 @@ def update_location():
 
     previous_square = user_locations.get(user_id)
 
-    # If user outside event
+    # If outside event
     if not inside_event(lat, lon):
 
         if previous_square and previous_square in SQUARES:
 
             SQUARES[previous_square]["count"] = max(
-                0, SQUARES[previous_square]["count"] - 1)
+                0, SQUARES[previous_square]["count"] - 1
+            )
 
             del user_locations[user_id]
 
@@ -135,17 +136,17 @@ def update_location():
             SQUARES[square]["count"] += 1
             user_locations[user_id] = square
 
-        # MOVED TO ANOTHER SQUARE
+        # MOVED SQUARE
         elif previous_square != square:
 
             if previous_square in SQUARES:
+
                 SQUARES[previous_square]["count"] = max(
-                    0, SQUARES[previous_square]["count"] - 1)
+                    0, SQUARES[previous_square]["count"] - 1
+                )
 
             SQUARES[square]["count"] += 1
             user_locations[user_id] = square
-
-        # SAME SQUARE → NO CHANGE
 
         alert = SQUARES[square]["count"] > SQUARES[square]["limit"]
 
@@ -156,6 +157,31 @@ def update_location():
         })
 
     return jsonify({"message": "Inside event but not mapped square"})
+
+
+# -------------------------
+# User leaves event
+# -------------------------
+@app.route('/leave_event', methods=['POST'])
+def leave_event():
+
+    data = request.json
+    user_id = data.get("device_id")
+
+    previous_square = user_locations.get(user_id)
+
+    if previous_square and previous_square in SQUARES:
+
+        SQUARES[previous_square]["count"] = max(
+            0, SQUARES[previous_square]["count"] - 1
+        )
+
+        del user_locations[user_id]
+
+    if user_id in user_coordinates:
+        del user_coordinates[user_id]
+
+    return jsonify({"status": "left"})
 
 
 # -------------------------
