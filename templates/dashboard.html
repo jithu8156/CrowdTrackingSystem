@@ -10,7 +10,7 @@
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
 
-<!-- Chart.js for analytics -->
+<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
@@ -95,6 +95,14 @@ border:2px solid #ef4444;
 #map{
 height:600px;
 display:none;
+}
+
+.squareLabel{
+font-weight:bold;
+color:#111;
+background:white;
+border-radius:4px;
+padding:2px 4px;
 }
 
 </style>
@@ -320,6 +328,53 @@ userMarkers[id]=marker;
 setInterval(updateUsers,3000);
 
 
+/* DRAW GRID SQUARES ON MAP */
+
+let squareLayers=[];
+
+function drawSquares(){
+
+fetch('/dashboard_data')
+
+.then(res=>res.json())
+
+.then(data=>{
+
+squareLayers.forEach(layer=>map.removeLayer(layer));
+squareLayers=[];
+
+for(const id in data){
+
+let sq=data[id];
+
+let bounds=[
+[sq.lat_min,sq.lon_min],
+[sq.lat_max,sq.lon_max]
+];
+
+let rect=L.rectangle(bounds,{
+color:"#2563eb",
+weight:1,
+fillOpacity:0.05
+}).addTo(map);
+
+rect.bindTooltip(id,{
+permanent:true,
+direction:"center",
+className:"squareLabel"
+});
+
+squareLayers.push(rect);
+
+}
+
+});
+
+}
+
+setInterval(drawSquares,4000);
+
+
 /* DASHBOARD GRID */
 
 function updateDashboard(){
@@ -337,27 +392,13 @@ grid.innerHTML="";
 
 let totalPeople=0;
 
-if(Object.keys(data).length===0){
-
-grid.innerHTML=`
-<div class="card" style="grid-column:span 4;">
-<h3>No Event Area Defined</h3>
-<p>Draw the event boundary in the Map tab.</p>
-</div>
-`;
-
-total.innerText=0;
-return;
-
-}
-
 for(const id in data){
 
 let square=data[id];
 
 totalPeople+=square.count;
 
-let isOvercrowded = square.count > square.limit;
+let isOvercrowded=square.count>square.limit;
 
 let status=isOvercrowded
 ? '<p class="danger">⚠ OVERCROWDED</p>'
@@ -402,10 +443,8 @@ let labels=[];
 let counts=[];
 
 for(const id in data){
-
 labels.push(id);
 counts.push(data[id].count);
-
 }
 
 if(!crowdChart){
@@ -413,9 +452,7 @@ if(!crowdChart){
 const ctx=document.getElementById("crowdChart").getContext("2d");
 
 crowdChart=new Chart(ctx,{
-
 type:"bar",
-
 data:{
 labels:labels,
 datasets:[{
@@ -424,12 +461,9 @@ data:counts,
 backgroundColor:"#3b82f6"
 }]
 },
-
 options:{
 responsive:true,
-plugins:{
-legend:{display:false}
-},
+plugins:{legend:{display:false}},
 scales:{
 y:{
 beginAtZero:true,
@@ -437,7 +471,6 @@ ticks:{stepSize:1}
 }
 }
 }
-
 });
 
 }else{
