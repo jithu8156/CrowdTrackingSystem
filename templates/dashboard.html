@@ -40,10 +40,6 @@ border-radius:5px;
 cursor:pointer;
 }
 
-.active{
-background:#3b82f6;
-}
-
 .content{
 padding:25px;
 }
@@ -82,7 +78,7 @@ display:none;
 
 <div class="tabs">
 
-<div class="tab active" onclick="showTab('dashboard')">Dashboard</div>
+<div class="tab" onclick="showTab('dashboard')">Dashboard</div>
 <div class="tab" onclick="showTab('map')">Map</div>
 <div class="tab" onclick="showTab('analytics')">Analytics</div>
 
@@ -100,40 +96,11 @@ display:none;
 <!-- DASHBOARD TAB -->
 <div id="dashboardTab">
 
-{% if squares|length == 0 %}
+<div id="gridContainer" class="grid">
 
-<div class="card" style="max-width:400px;margin:auto;text-align:center;">
-<h3>No Event Area Defined</h3>
-<p>Please go to the <strong>Map</strong> tab and draw the event boundary first.</p>
-</div>
-
-{% else %}
-
-<div class="grid">
-
-{% for id, square in squares.items() %}
-
-<div class="card">
-
-<h3>Square {{ id }}</h3>
-
-<p>People: {{ square.count }}</p>
-
-<p>Limit: {{ square.limit }}</p>
-
-{% if square.count > square.limit %}
-<p class="danger">⚠ OVERCROWDED</p>
-{% else %}
-<p class="safe">Safe</p>
-{% endif %}
+<!-- Squares will be inserted here dynamically -->
 
 </div>
-
-{% endfor %}
-
-</div>
-
-{% endif %}
 
 </div>
 
@@ -311,6 +278,62 @@ userMarkers[id]=marker;
 }
 
 setInterval(updateUsers,3000);
+
+
+// ---------------- DASHBOARD LIVE GRID ----------------
+
+function updateDashboard(){
+
+fetch('/dashboard_data')
+
+.then(res=>res.json())
+
+.then(data=>{
+
+const grid=document.getElementById("gridContainer");
+
+grid.innerHTML="";
+
+if(Object.keys(data).length===0){
+
+grid.innerHTML=`
+<div class="card" style="grid-column:span 4;">
+<h3>No Event Area Defined</h3>
+<p>Draw the event boundary in the Map tab.</p>
+</div>
+`;
+
+return;
+}
+
+for(const id in data){
+
+let square=data[id];
+
+let status=square.count>square.limit
+? '<p class="danger">⚠ OVERCROWDED</p>'
+: '<p class="safe">Safe</p>';
+
+let card=`
+<div class="card">
+<h3>Square ${id}</h3>
+<p>People: ${square.count}</p>
+<p>Limit: ${square.limit}</p>
+${status}
+</div>
+`;
+
+grid.innerHTML+=card;
+
+}
+
+});
+
+}
+
+setInterval(updateDashboard,2000);
+
+updateDashboard();
 
 </script>
 

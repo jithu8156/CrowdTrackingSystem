@@ -155,6 +155,14 @@ def live_users():
 
 
 # -------------------------
+# Dashboard live data API
+# -------------------------
+@app.route('/dashboard_data')
+def dashboard_data():
+    return jsonify(SQUARES)
+
+
+# -------------------------
 # Save event boundary
 # -------------------------
 @app.route('/save_boundary', methods=['POST'])
