@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
+
 <title>Crowd Monitoring System</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw/dist/leaflet.draw.css"/>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
 
 <style>
 
@@ -68,6 +71,7 @@ display:none;
 }
 
 </style>
+
 </head>
 
 <body>
@@ -93,7 +97,7 @@ display:none;
 
 <div class="content">
 
-<!-- DASHBOARD -->
+<!-- DASHBOARD TAB -->
 <div id="dashboardTab">
 
 <div class="grid">
@@ -123,16 +127,14 @@ display:none;
 </div>
 
 
-<!-- MAP -->
+<!-- MAP TAB -->
 <div id="map"></div>
 
 
-<!-- ANALYTICS -->
+<!-- ANALYTICS TAB -->
 <div id="analyticsTab" style="display:none">
 
 <h3>Analytics Coming Soon</h3>
-
-<p>Future improvements:</p>
 
 <ul>
 <li>Crowd density graphs</li>
@@ -143,6 +145,7 @@ display:none;
 </div>
 
 </div>
+
 
 <script>
 
@@ -170,7 +173,7 @@ document.getElementById("analyticsTab").style.display="block";
 }
 
 
-// MAP
+// ---------------- MAP SETUP ----------------
 
 var map=L.map('map').setView([9.931,76.267],18);
 
@@ -179,7 +182,82 @@ attribution:'© OpenStreetMap'
 }).addTo(map);
 
 
-// LIVE USERS
+// ---------------- DRAW EVENT BOUNDARY ----------------
+
+var drawnItems=new L.FeatureGroup();
+map.addLayer(drawnItems);
+
+var drawControl=new L.Control.Draw({
+
+draw:{
+polygon:true,
+rectangle:false,
+circle:false,
+marker:false,
+polyline:false,
+circlemarker:false
+},
+
+edit:{
+featureGroup:drawnItems
+}
+
+});
+
+map.addControl(drawControl);
+
+
+// SAVE BOUNDARY
+
+map.on(L.Draw.Event.CREATED,function(event){
+
+var layer=event.layer;
+
+drawnItems.clearLayers();
+drawnItems.addLayer(layer);
+
+var coordinates=layer.getLatLngs()[0];
+
+var formattedCoords=coordinates.map(function(coord){
+return [coord.lng,coord.lat];
+});
+
+fetch('/save_boundary',{
+
+method:'POST',
+
+headers:{
+'Content-Type':'application/json'
+},
+
+body:JSON.stringify({
+coordinates:formattedCoords
+})
+
+})
+
+.then(response=>response.json())
+
+.then(data=>{
+
+if(data.status==="success"){
+
+alert("Event boundary saved successfully!");
+
+map.fitBounds(layer.getBounds());
+
+}else{
+
+alert("Error saving boundary");
+
+}
+
+});
+
+});
+
+
+// ---------------- LIVE USERS ----------------
 
 var userMarkers={};
 
@@ -203,10 +281,12 @@ userMarkers[id].setLatLng([lat,lon]);
 }else{
 
 let marker=L.circleMarker([lat,lon],{
+
 radius:7,
 color:"red",
 fillColor:"red",
 fillOpacity:0.9
+
 }).addTo(map);
 
 userMarkers[id]=marker;

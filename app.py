@@ -17,11 +17,11 @@ user_coordinates = {}
 event_polygon = None
 SQUARES = {}
 
-GRID_SIZE = 4   # 4x4 grid
+GRID_SIZE = 4
 
 
 # -------------------------
-# Check inside event
+# Check if inside event
 # -------------------------
 def inside_event(lat, lon):
 
@@ -86,7 +86,7 @@ def get_square(lat, lon):
 
 
 # -------------------------
-# Home
+# Home page
 # -------------------------
 @app.route('/')
 def home():
@@ -94,18 +94,19 @@ def home():
 
 
 # -------------------------
-# Update location
+# Update user location
 # -------------------------
 @app.route('/update_location', methods=['POST'])
 def update_location():
 
     data = request.json
+
     lat = float(data["latitude"])
     lon = float(data["longitude"])
 
     user_id = request.remote_addr
 
-    # Save live coordinates
+    # Store live GPS
     user_coordinates[user_id] = {
         "lat": lat,
         "lon": lon
@@ -113,9 +114,10 @@ def update_location():
 
     previous_square = user_locations.get(user_id)
 
+    # Check if inside event
     if not inside_event(lat, lon):
 
-        if previous_square:
+        if previous_square and previous_square in SQUARES:
             SQUARES[previous_square]["count"] -= 1
             del user_locations[user_id]
 
@@ -125,7 +127,7 @@ def update_location():
 
     if square:
 
-        if previous_square and previous_square != square:
+        if previous_square and previous_square != square and previous_square in SQUARES:
             SQUARES[previous_square]["count"] -= 1
 
         if previous_square != square:
@@ -149,12 +151,11 @@ def update_location():
 # -------------------------
 @app.route('/live_users')
 def live_users():
-
     return jsonify(user_coordinates)
 
 
 # -------------------------
-# Save boundary
+# Save event boundary
 # -------------------------
 @app.route('/save_boundary', methods=['POST'])
 def save_boundary():
@@ -183,7 +184,6 @@ def save_boundary():
         return jsonify({"status": "success"})
 
     except Exception as e:
-
         return jsonify({"status": "error", "message": str(e)})
 
 
@@ -201,7 +201,6 @@ def admin_login():
         if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
 
             session['admin'] = True
-
             return redirect(url_for('dashboard'))
 
         return render_template('admin_login.html', error="Invalid Credentials")
@@ -222,18 +221,6 @@ def dashboard():
 
 
 # -------------------------
-# Admin map
-# -------------------------
-@app.route('/admin/map')
-def admin_map():
-
-    if not session.get('admin'):
-        return redirect(url_for('admin_login'))
-
-    return render_template("admin_map.html")
-
-
-# -------------------------
 # Logout
 # -------------------------
 @app.route('/logout')
@@ -245,7 +232,7 @@ def logout():
 
 
 # -------------------------
-# Run
+# Run app
 # -------------------------
 if __name__ == '__main__':
 
