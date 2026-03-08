@@ -64,7 +64,7 @@ def generate_grid(coords):
                 "lon_min": lon_min + j * lon_step,
                 "lon_max": lon_min + (j + 1) * lon_step,
                 "count": 0,
-                "limit": 5
+                "limit": 3
             }
 
     print("Generated Squares:", SQUARES)
