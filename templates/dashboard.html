@@ -98,7 +98,7 @@ display:none;
 
 <div id="gridContainer" class="grid">
 
-<!-- Squares will be inserted here dynamically -->
+<!-- Squares inserted dynamically -->
 
 </div>
 
@@ -127,7 +127,7 @@ display:none;
 
 <script>
 
-// TAB SWITCHING
+/* ---------------- TAB SWITCHING ---------------- */
 
 function showTab(tab){
 
@@ -151,7 +151,7 @@ document.getElementById("analyticsTab").style.display="block";
 }
 
 
-// ---------------- MAP SETUP ----------------
+/* ---------------- MAP SETUP ---------------- */
 
 var map=L.map('map').setView([9.931,76.267],18);
 
@@ -160,7 +160,7 @@ attribution:'© OpenStreetMap'
 }).addTo(map);
 
 
-// ---------------- DRAW EVENT BOUNDARY ----------------
+/* ---------------- DRAW EVENT BOUNDARY ---------------- */
 
 var drawnItems=new L.FeatureGroup();
 map.addLayer(drawnItems);
@@ -185,7 +185,7 @@ featureGroup:drawnItems
 map.addControl(drawControl);
 
 
-// SAVE BOUNDARY
+/* ---------------- SAVE BOUNDARY ---------------- */
 
 map.on(L.Draw.Event.CREATED,function(event){
 
@@ -235,7 +235,7 @@ alert("Error saving boundary");
 });
 
 
-// ---------------- LIVE USERS ----------------
+/* ---------------- LIVE USERS ---------------- */
 
 var userMarkers={};
 
@@ -247,6 +247,19 @@ fetch('/live_users')
 
 .then(data=>{
 
+// REMOVE USERS WHO LEFT
+for(let id in userMarkers){
+
+if(!(id in data)){
+
+map.removeLayer(userMarkers[id]);
+delete userMarkers[id];
+
+}
+
+}
+
+// ADD / UPDATE USERS
 for(let id in data){
 
 let lat=data[id].lat;
@@ -280,7 +293,7 @@ userMarkers[id]=marker;
 setInterval(updateUsers,3000);
 
 
-// ---------------- DASHBOARD LIVE GRID ----------------
+/* ---------------- DASHBOARD GRID ---------------- */
 
 function updateDashboard(){
 

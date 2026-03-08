@@ -105,7 +105,7 @@ def update_location():
     lon = float(data["longitude"])
     user_id = data["device_id"]
 
-    # Save live coordinates
+    # Save live GPS location
     user_coordinates[user_id] = {
         "lat": lat,
         "lon": lon
@@ -113,16 +113,18 @@ def update_location():
 
     previous_square = user_locations.get(user_id)
 
-    # If outside event
+    # If user outside event
     if not inside_event(lat, lon):
 
         if previous_square and previous_square in SQUARES:
 
             SQUARES[previous_square]["count"] = max(
-                0, SQUARES[previous_square]["count"] - 1
-            )
+                0, SQUARES[previous_square]["count"] - 1)
 
             del user_locations[user_id]
+
+        if user_id in user_coordinates:
+            del user_coordinates[user_id]
 
         return jsonify({"message": "Outside Event Area"})
 
@@ -130,20 +132,19 @@ def update_location():
 
     if square:
 
-        # FIRST ENTRY
+        # First time entry
         if previous_square is None:
 
             SQUARES[square]["count"] += 1
             user_locations[user_id] = square
 
-        # MOVED SQUARE
+        # Moved to new square
         elif previous_square != square:
 
             if previous_square in SQUARES:
 
                 SQUARES[previous_square]["count"] = max(
-                    0, SQUARES[previous_square]["count"] - 1
-                )
+                    0, SQUARES[previous_square]["count"] - 1)
 
             SQUARES[square]["count"] += 1
             user_locations[user_id] = square
@@ -170,22 +171,25 @@ def leave_event():
 
     previous_square = user_locations.get(user_id)
 
+    # Decrease square count
     if previous_square and previous_square in SQUARES:
 
         SQUARES[previous_square]["count"] = max(
-            0, SQUARES[previous_square]["count"] - 1
-        )
+            0, SQUARES[previous_square]["count"] - 1)
 
         del user_locations[user_id]
 
+    # Remove live GPS
     if user_id in user_coordinates:
         del user_coordinates[user_id]
 
-    return jsonify({"status": "left"})
+    print("User left:", user_id)
+
+    return jsonify({"status": "removed"})
 
 
 # -------------------------
-# Live user API
+# Live user API (for map)
 # -------------------------
 @app.route('/live_users')
 def live_users():
@@ -193,7 +197,7 @@ def live_users():
 
 
 # -------------------------
-# Dashboard live data API
+# Dashboard live data
 # -------------------------
 @app.route('/dashboard_data')
 def dashboard_data():

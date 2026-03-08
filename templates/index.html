@@ -55,10 +55,10 @@ function startTracking(){
                     body:JSON.stringify({
 
                         device_id: deviceId,
-
                         latitude: position.coords.latitude,
                         longitude: position.coords.longitude,
                         accuracy: position.coords.accuracy
+
                     })
                 })
 
@@ -126,19 +126,25 @@ function stopTracking(){
         clearInterval(trackingInterval);
         trackingInterval = null;
 
-        // Notify server that user left event
         fetch('/leave_event',{
             method:'POST',
             headers:{'Content-Type':'application/json'},
             body:JSON.stringify({
                 device_id: deviceId
             })
+        })
+        .then(res => res.json())
+        .then(data => {
+
+            document.getElementById("status").innerHTML =
+            "<span style='color:gray;'>You have exited the event.</span>";
+
+            document.getElementById("timestamp").innerHTML = "";
+
+        })
+        .catch(err => {
+            console.error("Leave event error:", err);
         });
-
-        document.getElementById("status").innerHTML =
-        "<span style='color:gray;'>Tracking stopped.</span>";
-
-        document.getElementById("timestamp").innerHTML = "";
 
     }
 
