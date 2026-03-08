@@ -8,7 +8,11 @@ app.secret_key = "supersecretkey123"
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "1234"
 
+# Store user square positions
 user_locations = {}
+
+# Store live GPS coordinates
+user_coordinates = {}
 
 event_polygon = None
 SQUARES = {}
@@ -100,6 +104,13 @@ def update_location():
     lon = float(data["longitude"])
 
     user_id = request.remote_addr
+
+    # Save live coordinates
+    user_coordinates[user_id] = {
+        "lat": lat,
+        "lon": lon
+    }
+
     previous_square = user_locations.get(user_id)
 
     if not inside_event(lat, lon):
@@ -131,6 +142,15 @@ def update_location():
         })
 
     return jsonify({"message": "Inside event but not mapped square"})
+
+
+# -------------------------
+# Live user API
+# -------------------------
+@app.route('/live_users')
+def live_users():
+
+    return jsonify(user_coordinates)
 
 
 # -------------------------
@@ -202,7 +222,7 @@ def dashboard():
 
 
 # -------------------------
-# Map
+# Admin map
 # -------------------------
 @app.route('/admin/map')
 def admin_map():
