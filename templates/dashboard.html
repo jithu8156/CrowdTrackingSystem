@@ -17,18 +17,29 @@
 
 body{
 margin:0;
-font-family:Arial;
-background:#f4f6f9;
+font-family:"Segoe UI",Roboto,Arial,sans-serif;
+background:#eef2f7;
+color:#1f2937;
 }
 
+/* TOPBAR */
+
 .topbar{
-background:#1f2937;
+background:#111827;
 color:white;
-padding:15px 25px;
+padding:18px 30px;
 display:flex;
 justify-content:space-between;
 align-items:center;
+box-shadow:0 2px 12px rgba(0,0,0,0.15);
 }
+
+.topbar h2{
+margin:0;
+font-weight:600;
+}
+
+/* TABS */
 
 .tabs{
 display:flex;
@@ -38,33 +49,58 @@ gap:10px;
 .tab{
 background:#374151;
 color:white;
-padding:8px 15px;
-border-radius:5px;
+padding:8px 16px;
+border-radius:6px;
 cursor:pointer;
+font-size:14px;
+transition:0.2s;
+}
+
+.tab:hover{
+background:#4b5563;
 }
 
 .tab.active{
 background:#2563eb;
 }
 
-.content{
-padding:25px;
+.tab.active:hover{
+background:#1d4ed8;
 }
+
+/* CONTENT */
+
+.content{
+padding:30px;
+max-width:1400px;
+margin:auto;
+}
+
+/* TOTAL BOX */
 
 .totalBox{
 background:white;
-padding:20px;
-border-radius:10px;
+padding:25px;
+border-radius:12px;
 text-align:center;
-margin-bottom:20px;
-box-shadow:0 2px 8px rgba(0,0,0,0.1);
+margin-bottom:25px;
+box-shadow:0 4px 14px rgba(0,0,0,0.08);
+border-left:6px solid #2563eb;
+}
+
+.totalBox h3{
+margin:0;
+color:#6b7280;
+font-weight:500;
 }
 
 .totalBox h1{
-margin:0;
+margin-top:10px;
+font-size:44px;
 color:#2563eb;
-font-size:42px;
 }
+
+/* GRID */
 
 .grid{
 display:grid;
@@ -72,30 +108,73 @@ grid-template-columns:repeat(4,1fr);
 gap:20px;
 }
 
+/* CARDS */
+
 .card{
-padding:20px;
-border-radius:10px;
+padding:22px;
+border-radius:12px;
 text-align:center;
-box-shadow:0 2px 8px rgba(0,0,0,0.1);
+background:white;
+box-shadow:0 4px 12px rgba(0,0,0,0.08);
+transition:all 0.2s;
 }
 
+.card:hover{
+transform:translateY(-3px);
+box-shadow:0 8px 20px rgba(0,0,0,0.12);
+}
+
+.card h3{
+margin-top:0;
+}
+
+/* SAFE */
+
 .safeCard{
-background:#dcfce7;
+background:#ecfdf5;
 border:2px solid #22c55e;
 }
 
+/* DANGER */
+
 .dangerCard{
-background:#fee2e2;
+background:#fef2f2;
 border:2px solid #ef4444;
 }
 
-.safe{color:green}
-.danger{color:red}
+.safe{
+color:#16a34a;
+font-weight:600;
+}
+
+.danger{
+color:#dc2626;
+font-weight:600;
+}
+
+/* MAP */
 
 #map{
 height:600px;
+border-radius:12px;
+box-shadow:0 4px 12px rgba(0,0,0,0.15);
 display:none;
 }
+
+/* ANALYTICS */
+
+#analyticsTab{
+background:white;
+padding:25px;
+border-radius:12px;
+box-shadow:0 4px 14px rgba(0,0,0,0.08);
+}
+
+#analyticsTab h3{
+margin-top:0;
+}
+
+/* GRID LABELS */
 
 .squareLabel{
 font-weight:bold;
@@ -103,6 +182,15 @@ color:#111;
 background:white;
 border-radius:4px;
 padding:2px 4px;
+box-shadow:0 1px 4px rgba(0,0,0,0.2);
+}
+
+/* CHART */
+
+canvas{
+background:white;
+border-radius:10px;
+padding:10px;
 }
 
 </style>
@@ -241,32 +329,20 @@ return [coord.lng,coord.lat];
 });
 
 fetch('/save_boundary',{
-
 method:'POST',
-
-headers:{
-'Content-Type':'application/json'
-},
-
-body:JSON.stringify({
-coordinates:formattedCoords
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({coordinates:formattedCoords})
 })
 
-})
-
-.then(response=>response.json())
+.then(res=>res.json())
 
 .then(data=>{
 
 if(data.status==="success"){
-
 alert("Event boundary saved successfully!");
 map.fitBounds(layer.getBounds());
-
 }else{
-
 alert("Error saving boundary");
-
 }
 
 });
@@ -287,12 +363,10 @@ fetch('/live_users')
 .then(data=>{
 
 for(let id in userMarkers){
-
 if(!(id in data)){
 map.removeLayer(userMarkers[id]);
 delete userMarkers[id];
 }
-
 }
 
 for(let id in data){
@@ -301,18 +375,14 @@ let lat=data[id].lat;
 let lon=data[id].lon;
 
 if(userMarkers[id]){
-
 userMarkers[id].setLatLng([lat,lon]);
-
 }else{
 
 let marker=L.circleMarker([lat,lon],{
-
 radius:7,
 color:"red",
 fillColor:"red",
 fillOpacity:0.9
-
 }).addTo(map);
 
 userMarkers[id]=marker;
@@ -328,7 +398,7 @@ userMarkers[id]=marker;
 setInterval(updateUsers,3000);
 
 
-/* DRAW GRID SQUARES ON MAP */
+/* DRAW GRID SQUARES */
 
 let squareLayers=[];
 
@@ -427,7 +497,7 @@ setInterval(updateDashboard,2000);
 updateDashboard();
 
 
-/* ANALYTICS CHART */
+/* ANALYTICS */
 
 let crowdChart;
 
@@ -456,20 +526,13 @@ type:"bar",
 data:{
 labels:labels,
 datasets:[{
-label:"People per Square",
 data:counts,
-backgroundColor:"#3b82f6"
+backgroundColor:"#2563eb"
 }]
 },
 options:{
-responsive:true,
 plugins:{legend:{display:false}},
-scales:{
-y:{
-beginAtZero:true,
-ticks:{stepSize:1}
-}
-}
+scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}
 }
 });
 
