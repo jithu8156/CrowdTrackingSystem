@@ -40,6 +40,10 @@ border-radius:5px;
 cursor:pointer;
 }
 
+.tab.active{
+background:#2563eb;
+}
+
 .content{
 padding:25px;
 }
@@ -56,7 +60,7 @@ box-shadow:0 2px 8px rgba(0,0,0,0.1);
 .totalBox h1{
 margin:0;
 color:#2563eb;
-font-size:40px;
+font-size:42px;
 }
 
 .grid{
@@ -93,9 +97,9 @@ display:none;
 
 <div class="tabs">
 
-<div class="tab" onclick="showTab('dashboard')">Dashboard</div>
-<div class="tab" onclick="showTab('map')">Map</div>
-<div class="tab" onclick="showTab('analytics')">Analytics</div>
+<div class="tab active" onclick="showTab('dashboard',this)">Dashboard</div>
+<div class="tab" onclick="showTab('map',this)">Map</div>
+<div class="tab" onclick="showTab('analytics',this)">Analytics</div>
 
 <a href="/logout">
 <div class="tab" style="background:#ef4444;">Logout</div>
@@ -116,11 +120,7 @@ display:none;
 <h1 id="totalCount">0</h1>
 </div>
 
-<div id="gridContainer" class="grid">
-
-<!-- Squares inserted dynamically -->
-
-</div>
+<div id="gridContainer" class="grid"></div>
 
 </div>
 
@@ -149,11 +149,15 @@ display:none;
 
 /* ---------------- TAB SWITCHING ---------------- */
 
-function showTab(tab){
+function showTab(tab,element){
 
 document.getElementById("dashboardTab").style.display="none";
 document.getElementById("map").style.display="none";
 document.getElementById("analyticsTab").style.display="none";
+
+document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+
+if(element) element.classList.add("active");
 
 if(tab==="dashboard"){
 document.getElementById("dashboardTab").style.display="block";
@@ -241,7 +245,6 @@ coordinates:formattedCoords
 if(data.status==="success"){
 
 alert("Event boundary saved successfully!");
-
 map.fitBounds(layer.getBounds());
 
 }else{
@@ -270,10 +273,8 @@ fetch('/live_users')
 for(let id in userMarkers){
 
 if(!(id in data)){
-
 map.removeLayer(userMarkers[id]);
 delete userMarkers[id];
-
 }
 
 }
@@ -338,8 +339,8 @@ grid.innerHTML=`
 `;
 
 total.innerText=0;
-
 return;
+
 }
 
 for(const id in data){
@@ -372,7 +373,6 @@ total.innerText=totalPeople;
 }
 
 setInterval(updateDashboard,2000);
-
 updateDashboard();
 
 </script>
