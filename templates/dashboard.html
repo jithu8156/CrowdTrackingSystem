@@ -10,6 +10,9 @@
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
 
+<!-- Chart.js for analytics -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
 
 body{
@@ -76,14 +79,10 @@ text-align:center;
 box-shadow:0 2px 8px rgba(0,0,0,0.1);
 }
 
-/* SAFE ZONE */
-
 .safeCard{
 background:#dcfce7;
 border:2px solid #22c55e;
 }
-
-/* OVERCROWDED */
 
 .dangerCard{
 background:#fee2e2;
@@ -125,6 +124,7 @@ display:none;
 
 <div class="content">
 
+<!-- DASHBOARD -->
 <div id="dashboardTab">
 
 <div class="totalBox">
@@ -136,17 +136,17 @@ display:none;
 
 </div>
 
+
+<!-- MAP -->
 <div id="map"></div>
 
+
+<!-- ANALYTICS -->
 <div id="analyticsTab" style="display:none">
 
-<h3>Analytics Coming Soon</h3>
+<h3>Crowd Distribution by Square</h3>
 
-<ul>
-<li>Crowd density graphs</li>
-<li>Peak crowd analysis</li>
-<li>Event timeline reports</li>
-</ul>
+<canvas id="crowdChart" height="120"></canvas>
 
 </div>
 
@@ -384,6 +384,75 @@ total.innerText=totalPeople;
 
 setInterval(updateDashboard,2000);
 updateDashboard();
+
+
+/* ANALYTICS CHART */
+
+let crowdChart;
+
+function updateAnalytics(){
+
+fetch('/dashboard_data')
+
+.then(res=>res.json())
+
+.then(data=>{
+
+let labels=[];
+let counts=[];
+
+for(const id in data){
+
+labels.push(id);
+counts.push(data[id].count);
+
+}
+
+if(!crowdChart){
+
+const ctx=document.getElementById("crowdChart").getContext("2d");
+
+crowdChart=new Chart(ctx,{
+
+type:"bar",
+
+data:{
+labels:labels,
+datasets:[{
+label:"People per Square",
+data:counts,
+backgroundColor:"#3b82f6"
+}]
+},
+
+options:{
+responsive:true,
+plugins:{
+legend:{display:false}
+},
+scales:{
+y:{
+beginAtZero:true,
+ticks:{stepSize:1}
+}
+}
+}
+
+});
+
+}else{
+
+crowdChart.data.labels=labels;
+crowdChart.data.datasets[0].data=counts;
+crowdChart.update();
+
+}
+
+});
+
+}
+
+setInterval(updateAnalytics,3000);
 
 </script>
 
